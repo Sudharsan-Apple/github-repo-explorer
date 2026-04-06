@@ -1,17 +1,9 @@
 import { useState, useCallback, useRef } from 'react'
 
-const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN
-
-const buildHeaders = () => {
-  const headers = {
-    Accept: 'application/vnd.github+json',
-    'X-GitHub-Api-Version': '2022-11-28',
-  }
-  if (GITHUB_TOKEN) {
-    headers['Authorization'] = `Bearer ${GITHUB_TOKEN}`
-  }
-  return headers
-}
+const buildHeaders = () => ({
+  Accept: 'application/vnd.github+json',
+  'X-GitHub-Api-Version': '2022-11-28',
+})
 
 export const useGitHubSearch = () => {
   const [repos, setRepos] = useState([])
