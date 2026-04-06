@@ -123,6 +123,10 @@ const RepoCard = ({
             {formatNumber(repo.stargazers_count)}
           </span>
 
+          <span className={`px-1.5 py-0.5 rounded text-xs border ${starTier.bg} ${starTier.color}`}>
+            {starTier.label}
+          </span>
+
           <span className="flex items-center gap-1 text-slate-400">
             <GitFork size={12} />
             {formatNumber(repo.forks_count)}
@@ -147,10 +151,6 @@ const RepoCard = ({
             {repo.language}
           </span>
         )}
-      </div>
-
-      <div className={`absolute top-3 right-10 px-1.5 py-0.5 rounded text-xs border ${starTier.bg} ${starTier.color} opacity-0 group-hover:opacity-100 transition-opacity`}>
-        {starTier.label}
       </div>
     </button>
   )

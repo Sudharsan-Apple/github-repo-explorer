@@ -252,7 +252,7 @@ const Dashboard = ({ darkMode, onToggleDark }) => {
             </p>
           )}
 
-          {loading && (
+          {(loading || isFetching) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {Array.from({ length: 8 }).map((_, idx) => (
                 <div key={idx} className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5 animate-pulse space-y-3">
@@ -269,7 +269,7 @@ const Dashboard = ({ darkMode, onToggleDark }) => {
             </div>
           )}
 
-          {!loading && !error && sortedRepos.length === 0 && (activeChip || searchQuery || favoritesOnly) && (
+          {!loading && !isFetching && !error && sortedRepos.length === 0 && (activeChip || searchQuery || favoritesOnly) && (
             <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
               <div className="text-5xl">🔍</div>
               <p className="text-slate-300 text-lg font-medium">No repositories found</p>
@@ -279,7 +279,7 @@ const Dashboard = ({ darkMode, onToggleDark }) => {
             </div>
           )}
 
-          {!loading && !error && sortedRepos.length === 0 && !activeChip && !searchQuery && !favoritesOnly && (
+          {!loading && !isFetching && !error && sortedRepos.length === 0 && !activeChip && !searchQuery && !favoritesOnly && (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Github size={48} className="text-slate-700" />
               <p className="text-slate-400 text-base font-medium">Explore GitHub repos</p>
@@ -287,7 +287,7 @@ const Dashboard = ({ darkMode, onToggleDark }) => {
             </div>
           )}
 
-          {!loading && pagedRepos.length > 0 && (
+          {!loading && !isFetching && pagedRepos.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 relative">
               {pagedRepos.map((repo) => (
                 <RepoCard
@@ -304,7 +304,7 @@ const Dashboard = ({ darkMode, onToggleDark }) => {
             </div>
           )}
 
-          {!loading && totalPages > 1 && (
+          {!loading && !isFetching && totalPages > 1 && (
             <Pagination
               currentPage={page}
               totalPages={totalPages}
