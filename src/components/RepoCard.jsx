@@ -32,6 +32,7 @@ const RepoCard = ({
       onClick={() => onOpenDetails(repo)}
       className="text-left relative bg-slate-800/60 border border-slate-700/50 rounded-xl p-5 hover:border-slate-600 hover:bg-slate-800/80 transition-all duration-200 flex flex-col gap-3 group w-full"
     >
+      {/* Header: title + action icons */}
       <div className="flex items-start justify-between gap-2">
         <a
           href={repo.html_url}
@@ -76,10 +77,12 @@ const RepoCard = ({
         </div>
       </div>
 
+      {/* Description */}
       <p className="text-slate-400 text-xs leading-relaxed line-clamp-2 flex-1">
         {repo.description || <span className="italic text-slate-600">No description provided.</span>}
       </p>
 
+      {/* Topics */}
       {repo.topics && repo.topics.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {repo.topics.slice(0, 4).map((t) => (
@@ -99,6 +102,7 @@ const RepoCard = ({
         </div>
       )}
 
+      {/* Compare button */}
       <button
         type="button"
         onClick={(e) => {
@@ -116,8 +120,10 @@ const RepoCard = ({
         {isComparing ? 'Comparing' : 'Compare'}
       </button>
 
-      <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-700/40">
-        <div className="flex items-center gap-3 text-xs">
+      {/* Footer: two rows to prevent overflow */}
+      <div className="flex flex-col gap-1 mt-auto pt-2 border-t border-slate-700/40">
+        {/* Row 1: stars + tier badge + forks */}
+        <div className="flex items-center gap-2 text-xs">
           <span className={`flex items-center gap-1 font-semibold ${starTier.color}`}>
             <Star size={12} fill="currentColor" />
             {formatNumber(repo.stargazers_count)}
@@ -131,26 +137,29 @@ const RepoCard = ({
             <GitFork size={12} />
             {formatNumber(repo.forks_count)}
           </span>
+        </div>
 
-          <span className="flex items-center gap-1 text-slate-500">
+        {/* Row 2: date + language badge */}
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1 text-slate-500 text-xs">
             <Clock size={10} />
             {formatDate(repo.updated_at)}
           </span>
-        </div>
 
-        {repo.language && (
-          <span
-            className="flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full border"
-            style={{
-              color: langColor,
-              borderColor: `${langColor}40`,
-              backgroundColor: `${langColor}15`,
-            }}
-          >
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: langColor }} />
-            {repo.language}
-          </span>
-        )}
+          {repo.language && (
+            <span
+              className="flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full border"
+              style={{
+                color: langColor,
+                borderColor: `${langColor}40`,
+                backgroundColor: `${langColor}15`,
+              }}
+            >
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: langColor }} />
+              {repo.language}
+            </span>
+          )}
+        </div>
       </div>
     </button>
   )
