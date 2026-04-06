@@ -12,10 +12,11 @@ export const useGitHubSearch = () => {
   const [rateLimited, setRateLimited] = useState(false)
   const [retryAfter, setRetryAfter] = useState(0)
   const [totalCount, setTotalCount] = useState(0)
+  const [rateLimitRemaining, setRateLimitRemaining] = useState(null)
+  const [rateLimitLimit, setRateLimitLimit] = useState(null)
   const abortRef = useRef(null)
 
   const search = useCallback(async ({ query, topic, sort = 'stars', order = 'desc', page = 1, perPage = 100 }) => {
-    // Cancel previous request
     if (abortRef.current) {
       abortRef.current.abort()
     }
@@ -44,13 +45,17 @@ export const useGitHubSearch = () => {
         signal: controller.signal,
       })
 
+      const remaining = Number(res.headers.get('X-RateLimit-Remaining'))
+      const limit = Number(res.headers.get('X-RateLimit-Limit'))
+      if (!Number.isNaN(remaining)) setRateLimitRemaining(remaining)
+      if (!Number.isNaN(limit)) setRateLimitLimit(limit)
+
       if (res.status === 403 || res.status === 429) {
         const retryHeader = res.headers.get('Retry-After') || res.headers.get('X-RateLimit-Reset')
         let waitSeconds = 60
         if (retryHeader) {
           const resetTime = parseInt(retryHeader, 10)
           if (resetTime > 1000000000) {
-            // Unix timestamp
             waitSeconds = Math.max(0, resetTime - Math.floor(Date.now() / 1000))
           } else {
             waitSeconds = resetTime
@@ -79,5 +84,15 @@ export const useGitHubSearch = () => {
     }
   }, [])
 
-  return { repos, loading, error, rateLimited, retryAfter, totalCount, search }
+  return {
+    repos,
+    loading,
+    error,
+    rateLimited,
+    retryAfter,
+    totalCount,
+    rateLimitRemaining,
+    rateLimitLimit,
+    search,
+  }
 }

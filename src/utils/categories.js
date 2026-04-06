@@ -15,6 +15,7 @@ export const SORT_OPTIONS = [
   { label: 'Stars', value: 'stars' },
   { label: 'Forks', value: 'forks' },
   { label: 'Updated', value: 'updated' },
+  { label: 'Name', value: 'name' },
 ]
 
 export const LANGUAGE_COLORS = {

@@ -1,25 +1,46 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Github, Sun, Moon, SortAsc, AlertCircle, Loader2, RefreshCw } from 'lucide-react'
+import { Github, Sun, Moon, AlertCircle, RefreshCw, ArrowUp } from 'lucide-react'
 import FilterBar from './FilterBar'
 import SearchBar from './SearchBar'
 import RepoCard from './RepoCard'
+import RepoDetailModal from './RepoDetailModal'
 import StatsPanel from './StatsPanel'
 import { LanguagePie, TopStarsBar, TopicComparisonBar } from './Charts'
 import Pagination from './Pagination'
 import { useGitHubSearch } from '../hooks/useGitHubSearch'
-import { SORT_OPTIONS, ITEMS_PER_PAGE } from '../utils/categories'
+import { ITEMS_PER_PAGE } from '../utils/categories'
 
 const Dashboard = ({ darkMode, onToggleDark }) => {
   const [activeChip, setActiveChip] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [sort, setSort] = useState('stars')
   const [page, setPage] = useState(1)
+  const [selectedRepo, setSelectedRepo] = useState(null)
+  const [showBackToTop, setShowBackToTop] = useState(false)
 
-  const { repos, loading, error, rateLimited, retryAfter, totalCount, search } = useGitHubSearch()
+  const {
+    repos,
+    loading,
+    error,
+    rateLimited,
+    retryAfter,
+    totalCount,
+    rateLimitRemaining,
+    rateLimitLimit,
+    search,
+  } = useGitHubSearch()
 
   const triggerSearch = (chip, query, sortBy) => {
     if (!chip && !query) return
-    search({ topic: chip, query, sort: sortBy, order: 'desc', perPage: 100, page: 1 })
+    const isNameSort = sortBy === 'name'
+    search({
+      topic: chip,
+      query,
+      sort: isNameSort ? 'stars' : sortBy,
+      order: 'desc',
+      perPage: 100,
+      page: 1,
+    })
     setPage(1)
   }
 
@@ -42,28 +63,36 @@ const Dashboard = ({ darkMode, onToggleDark }) => {
     }
   }
 
-  // Sort repos client-side for the current page
   const sortedRepos = useMemo(() => {
     const arr = [...repos]
     if (sort === 'stars') arr.sort((a, b) => b.stargazers_count - a.stargazers_count)
     else if (sort === 'forks') arr.sort((a, b) => b.forks_count - a.forks_count)
     else if (sort === 'updated') arr.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+    else if (sort === 'name') arr.sort((a, b) => a.full_name.localeCompare(b.full_name))
     return arr
   }, [repos, sort])
 
   const totalPages = Math.ceil(sortedRepos.length / ITEMS_PER_PAGE)
   const pagedRepos = sortedRepos.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
 
-  // Load default on mount
+  const isRateLimitNear = rateLimitRemaining !== null && rateLimitLimit !== null && rateLimitRemaining <= 10
+
   useEffect(() => {
     search({ topic: 'openai', sort: 'stars', order: 'desc', perPage: 100 })
     setActiveChip('openai')
   }, [])
 
+  useEffect(() => {
+    const onScroll = () => {
+      setShowBackToTop(window.scrollY > 350)
+    }
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   return (
     <div className={`min-h-screen ${darkMode ? 'dark' : ''}`}>
       <div className="min-h-screen bg-slate-950 text-slate-100">
-        {/* Header */}
         <header className="sticky top-0 z-20 bg-slate-900/90 backdrop-blur border-b border-slate-800 px-4 py-3">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -90,27 +119,27 @@ const Dashboard = ({ darkMode, onToggleDark }) => {
           </div>
         </header>
 
-        {/* Main layout */}
         <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col gap-6">
-          {/* Filter chips */}
-          <FilterBar activeChip={activeChip} onChipClick={handleChipClick} />
+          <FilterBar activeChip={activeChip} onChipClick={handleChipClick} sort={sort} onSortChange={handleSortChange} />
 
-          {/* Rate limit warning */}
+          {isRateLimitNear && !rateLimited && (
+            <div className="flex items-center gap-3 bg-amber-900/20 border border-amber-700/50 rounded-xl p-4 text-amber-300 text-sm">
+              <AlertCircle size={18} />
+              <span>
+                API rate limit running low: {rateLimitRemaining}/{rateLimitLimit} requests left this hour.
+              </span>
+            </div>
+          )}
+
           {rateLimited && (
             <div className="flex items-center gap-3 bg-amber-900/20 border border-amber-700/50 rounded-xl p-4 text-amber-400 text-sm">
               <AlertCircle size={18} />
               <span>
                 GitHub API rate limit reached. Please wait {retryAfter > 0 ? `~${retryAfter}s` : 'a moment'} before trying again.
-                {!import.meta.env.VITE_GITHUB_TOKEN && (
-                  <span className="ml-1 text-amber-500">
-                    Tip: Add a <code className="bg-amber-900/30 px-1 rounded">VITE_GITHUB_TOKEN</code> in <code className="bg-amber-900/30 px-1 rounded">.env</code> for higher limits.
-                  </span>
-                )}
               </span>
             </div>
           )}
 
-          {/* Error */}
           {error && (
             <div className="flex items-center gap-3 bg-red-900/20 border border-red-700/50 rounded-xl p-4 text-red-400 text-sm">
               <AlertCircle size={18} />
@@ -124,12 +153,8 @@ const Dashboard = ({ darkMode, onToggleDark }) => {
             </div>
           )}
 
-          {/* Stats */}
-          {repos.length > 0 && (
-            <StatsPanel repos={repos} totalCount={totalCount} />
-          )}
+          {repos.length > 0 && <StatsPanel repos={repos} totalCount={totalCount} />}
 
-          {/* Charts */}
           {repos.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <LanguagePie repos={repos} />
@@ -138,58 +163,41 @@ const Dashboard = ({ darkMode, onToggleDark }) => {
             </div>
           )}
 
-          {/* Sort + count */}
           {repos.length > 0 && (
-            <div className="flex items-center justify-between gap-4">
-              <p className="text-sm text-slate-400">
-                Showing <span className="text-white font-semibold">{pagedRepos.length}</span> of{' '}
-                <span className="text-white font-semibold">{sortedRepos.length}</span> repos
-                {totalCount > 0 && (
-                  <span className="text-slate-600"> ({totalCount.toLocaleString()} total on GitHub)</span>
-                )}
-              </p>
-
-              <div className="flex items-center gap-2">
-                <SortAsc size={14} className="text-slate-400" />
-                <span className="text-xs text-slate-400">Sort:</span>
-                <div className="flex gap-1">
-                  {SORT_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => handleSortChange(opt.value)}
-                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                        sort === opt.value
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <p className="text-sm text-slate-400">
+              Showing <span className="text-white font-semibold">{pagedRepos.length}</span> of{' '}
+              <span className="text-white font-semibold">{sortedRepos.length}</span> repos
+              {totalCount > 0 && <span className="text-slate-600"> ({totalCount.toLocaleString()} total on GitHub)</span>}
+            </p>
           )}
 
-          {/* Loading */}
           {loading && (
-            <div className="flex items-center justify-center py-20">
-              <div className="flex flex-col items-center gap-4">
-                <Loader2 size={40} className="text-blue-500 animate-spin" />
-                <p className="text-slate-400 text-sm">Searching GitHub repositories…</p>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, idx) => (
+                <div key={idx} className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-5 animate-pulse space-y-3">
+                  <div className="h-4 bg-slate-700 rounded w-2/3" />
+                  <div className="h-3 bg-slate-700 rounded w-full" />
+                  <div className="h-3 bg-slate-700 rounded w-5/6" />
+                  <div className="flex gap-2 pt-2">
+                    <div className="h-5 w-16 bg-slate-700 rounded-full" />
+                    <div className="h-5 w-14 bg-slate-700 rounded-full" />
+                  </div>
+                  <div className="h-8 bg-slate-700 rounded mt-2" />
+                </div>
+              ))}
             </div>
           )}
 
-          {/* Empty state */}
           {!loading && !error && repos.length === 0 && (activeChip || searchQuery) && (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <Github size={48} className="text-slate-700" />
-              <p className="text-slate-500 text-sm">No repositories found. Try a different search or filter.</p>
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+              <div className="text-5xl">🔍</div>
+              <p className="text-slate-300 text-lg font-medium">No repositories found</p>
+              <p className="text-slate-500 text-sm max-w-md">
+                Try a different keyword, broader topic, or switch sorting. Some niche searches may return zero results.
+              </p>
             </div>
           )}
 
-          {/* Welcome state */}
           {!loading && !error && repos.length === 0 && !activeChip && !searchQuery && (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Github size={48} className="text-slate-700" />
@@ -198,16 +206,14 @@ const Dashboard = ({ darkMode, onToggleDark }) => {
             </div>
           )}
 
-          {/* Repo grid */}
           {!loading && pagedRepos.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 relative">
               {pagedRepos.map((repo) => (
-                <RepoCard key={repo.id} repo={repo} />
+                <RepoCard key={repo.id} repo={repo} onOpenDetails={setSelectedRepo} />
               ))}
             </div>
           )}
 
-          {/* Pagination */}
           {!loading && totalPages > 1 && (
             <Pagination
               currentPage={page}
@@ -220,10 +226,33 @@ const Dashboard = ({ darkMode, onToggleDark }) => {
           )}
         </div>
 
-        {/* Footer */}
-        <footer className="border-t border-slate-800 mt-10 py-6 text-center text-slate-600 text-xs">
-          GitHub Repo Explorer · Built with React + Vite + TailwindCSS + Recharts
+        <footer className="border-t border-slate-800 mt-10 py-6 text-center text-slate-400 text-xs space-y-1">
+          <p>Built with ⚡ Jarvis + OpenClaw</p>
+          <p>
+            <a
+              href="https://github.com/Sudharsan-Apple/github-repo-explorer"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300"
+            >
+              GitHub Repository
+            </a>
+            {' · '}Powered by GitHub API
+          </p>
         </footer>
+
+        {showBackToTop && (
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-6 right-6 z-30 p-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-900/40"
+            title="Back to top"
+          >
+            <ArrowUp size={16} />
+          </button>
+        )}
+
+        {selectedRepo && <RepoDetailModal repo={selectedRepo} onClose={() => setSelectedRepo(null)} />}
       </div>
     </div>
   )
