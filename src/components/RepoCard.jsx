@@ -1,8 +1,16 @@
 import React, { useState } from 'react'
-import { Star, GitFork, Clock, ExternalLink, Tag, Clipboard, Check } from 'lucide-react'
+import { Star, GitFork, Clock, ExternalLink, Tag, Clipboard, Check, Bookmark, Scale } from 'lucide-react'
 import { getLanguageColor, getStarTier, formatNumber, formatDate } from '../utils/categories'
 
-const RepoCard = ({ repo, onOpenDetails }) => {
+const RepoCard = ({
+  repo,
+  onOpenDetails,
+  isFavorite,
+  onToggleFavorite,
+  isComparing,
+  onToggleCompare,
+  compareDisabled,
+}) => {
   const starTier = getStarTier(repo.stargazers_count)
   const langColor = getLanguageColor(repo.language)
   const [copied, setCopied] = useState(false)
@@ -36,6 +44,17 @@ const RepoCard = ({ repo, onOpenDetails }) => {
         </a>
 
         <div className="flex items-center gap-2 shrink-0 mt-0.5">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleFavorite(repo)
+            }}
+            className={`transition-colors ${isFavorite ? 'text-yellow-400' : 'text-slate-500 hover:text-yellow-400'}`}
+            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            <Bookmark size={14} fill={isFavorite ? 'currentColor' : 'none'} />
+          </button>
           <button
             type="button"
             onClick={handleCopy}
@@ -79,6 +98,23 @@ const RepoCard = ({ repo, onOpenDetails }) => {
           )}
         </div>
       )}
+
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          onToggleCompare(repo)
+        }}
+        disabled={compareDisabled && !isComparing}
+        className={`inline-flex items-center justify-center gap-1 text-xs px-2 py-1 rounded-lg border w-fit transition-colors ${
+          isComparing
+            ? 'border-indigo-500 text-indigo-300 bg-indigo-900/20'
+            : 'border-slate-600 text-slate-300 hover:border-slate-500'
+        } disabled:opacity-40 disabled:cursor-not-allowed`}
+      >
+        <Scale size={12} />
+        {isComparing ? 'Comparing' : 'Compare'}
+      </button>
 
       <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-700/40">
         <div className="flex items-center gap-3 text-xs">
